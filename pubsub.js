@@ -60,8 +60,14 @@ function Pubsub(app, options)
 
         if (!self.type) self.type = options.type;
 
-        if (options.type === 'client') clientSide(self, options);
-        else if (options.type === 'server') serverSide(self, app, options);
+        if (options.type === 'client') clientSide(self, options).then(function ()
+        {
+            if (options.done) options.done();
+        });
+        else if (options.type === 'server') serverSide(self, app, options).then(function ()
+        {
+            if (options.done) options.done();
+        });
         else if (options.type)
         {
             throw new Error('Type "' + options.type + '"" is not valid. Valid options: client/server');
