@@ -64,10 +64,7 @@ function Pubsub(app, options)
         {
             if (options.done) options.done();
         });
-        else if (options.type === 'server') serverSide(self, app, options).then(function ()
-        {
-            if (options.done) options.done();
-        });
+        else if (options.type === 'server') serverSide(self, app, options);
         else if (options.type)
         {
             throw new Error('Type "' + options.type + '"" is not valid. Valid options: client/server');
@@ -259,17 +256,17 @@ function clientSide(pubsub, options)
 {
     if (!options.projectId)
     {
-        throw new Error('Google Project Id is required for pubsub client');
+        return Promise.reject(new Error('Google Project Id is required for pubsub client'));
     }
 
     if (!options.modelsToSubscribe || options.modelsToSubscribe.length < 1)
     {
-        throw new Error('modelsToSubscribe is required for pubsub client');
+        return Promise.reject(new Error('modelsToSubscribe is required for pubsub client'));
     }
 
     if (!options.eventFn)
     {
-        throw new Error('eventFn is required for pubsub client');
+        return Promise.reject(new Error('eventFn is required for pubsub client'));
     }
 
     pubsub.eventFn = options.eventFn;
