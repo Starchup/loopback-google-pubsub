@@ -149,16 +149,16 @@ function afterSaveHook(pubsub, app)
         const modelName = getModelName(ctx);
         if (!modelName) return next();
 
-        const method = ctx.isNewInstance ? 'create' : 'update';
+        const methodName = ctx.isNewInstance ? 'create' : 'update';
         const topicName = modelName;
 
-        if (ctx.instance && ctx.instance.id && shouldPublish(pubsub, modelName, method, ctx.instance, ctx))
+        if (ctx.instance && ctx.instance.id && shouldPublish(pubsub, modelName, methodName, ctx.instance, ctx))
         {
             const instance = JSON.parse(JSON.stringify(ctx.instance));
             return pubsub.emit([
             {
                 modelName: modelName,
-                methodName: method,
+                methodName: methodName,
                 modelId: instance.id,
                 data: instance
             }], topicName);
