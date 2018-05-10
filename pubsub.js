@@ -1,6 +1,6 @@
 "use strict";
 
-const PubSub = require('@google-cloud/pubsub');
+const PubSub = require('google-pubsub-wrapper');
 
 const pubsubList = {};
 
@@ -41,10 +41,7 @@ function Pubsub(app, options)
 
     if (options)
     {
-        if (!self.pubsub) self.pubsub = PubSub(
-        {
-            projectId: options.projectId
-        });
+        self.pubsub = PubSub.init(options.projectId);
 
         if (!options.serviceName) throw new Error('options.serviceName is required');
         if (!self.serviceName) self.serviceName = options.serviceName;
@@ -75,69 +72,12 @@ function Pubsub(app, options)
 }
 
 
-/* Pubsub Setup */
-var sep = '__';
-
-function findOrCreateTopic(pubsub, topicName)
-{
-    const topic = pubsub.pubsub.topic([pubsub.env, topicName].join(sep));
-
-    //Find or create topic
-    return topic.get(
-    {
-        autoCreate: true
-    }).then(topics =>
-    {
-        //Google return format, always first index in array
-        return topics[0];
-    });
-}
-
-function createSubscription(pubsub, modelName)
-{
-    return findOrCreateTopic(pubsub, modelName).then(topic =>
-    {
-        const subscriptionName = [pubsub.env, pubsub.serviceName, modelName].join(sep);
-        return topic.createSubscription(subscriptionName).then(subscriptions =>
-        {
-            const subscription = subscriptions[0];
-
-            const eventHandler = eventMessageHandler.bind(null, modelName, pubsub);
-            const errorHandler = errorMessageHandler.bind(null, topic, subscription);
-
-            //Handlers will receive message object as param
-            subscription.on('message', eventHandler);
-            subscription.on('error', errorHandler);
-        });
-    });
-}
-
-
-/* Pubsub Handlers */
-
-function eventMessageHandler(modelName, pubsub, message)
-{
-    message.ack();
-
-    JSON.parse(message.data.toString('utf8')).forEach(d =>
-    {
-        if (modelName !== d.modelName || !d.modelId) return;
-        pubsub.eventFn(d.modelName, d.methodName, d.modelId, d.data);
-    });
-}
-
-function errorMessageHandler(topic, subscription, err)
-{
-    console.error('Error for topic ' + topic.name + ' and subscription ' + subscription.name + ': ' + err.message);
-}
-
-
 /* Model Hook helpers */
 
-function shouldPublish(pubsub, modelName, methodName, instance, ctx)
+function shouldPublish(self, modelName, methodName, instance, ctx)
 {
-    if (!pubsub.filters || !pubsub.filters.length) return true;
-    return pubsub.filters.every(fn =>
+    if (!self.filters || !self.filters.length) return true;
+    return self.filters.every(fn =>
     {
         //Silently skip improper filters
         if (getType(fn) !== 'Function') return true;
@@ -145,7 +85,7 @@ function shouldPublish(pubsub, modelName, methodName, instance, ctx)
     });
 }
 
-function afterSaveHook(pubsub, app)
+function afterSaveHook(self, app)
 {
     return function (ctx, next)
     {
@@ -155,16 +95,21 @@ function afterSaveHook(pubsub, app)
         const methodName = ctx.isNewInstance ? 'create' : 'update';
         const topicName = modelName;
 
-        if (ctx.instance && ctx.instance.id && shouldPublish(pubsub, modelName, methodName, ctx.instance, ctx))
+        if (ctx.instance && ctx.instance.id && shouldPublish(self, modelName, methodName, ctx.instance, ctx))
         {
             const instance = JSON.parse(JSON.stringify(ctx.instance));
-            return pubsub.emit([
+            return self.pubsub.emit([
             {
                 modelName: modelName,
                 methodName: methodName,
                 modelId: instance.id,
                 data: instance
-            }], topicName);
+            }],
+            {
+                topicName: topicName,
+                env: self.env,
+                groupName: self.serviceName
+            });
         }
 
         if (!ctx.where) return next();
@@ -181,7 +126,7 @@ function afterSaveHook(pubsub, app)
 
             const data = JSON.parse(JSON.stringify(models)).filter(m =>
             {
-                return shouldPublish(pubsub, modelName, methodName, m, ctx);
+                return shouldPublish(self, modelName, methodName, m, ctx);
             }).map(m =>
             {
                 return {
@@ -192,14 +137,19 @@ function afterSaveHook(pubsub, app)
                 }
             });
 
-            if (data && data.length > 0) return pubsub.emit(data, topicName);
+            if (data && data.length > 0) return self.pubsub.emit(data,
+            {
+                topicName: topicName,
+                env: self.env,
+                groupName: self.serviceName
+            });
 
         }).catch(console.error).then(next);
     }
 }
 
 //Returns a function that watches model deletions and publishes them
-function beforeDeleteHook(pubsub, app)
+function beforeDeleteHook(self, app)
 {
     return function (ctx, next)
     {
@@ -219,7 +169,7 @@ function beforeDeleteHook(pubsub, app)
 
             const data = JSON.parse(JSON.stringify(models)).filter(m =>
             {
-                return shouldPublish(pubsub, modelName, methodName, m, ctx);
+                return shouldPublish(self, modelName, methodName, m, ctx);
             }).map(m =>
             {
                 return {
@@ -230,7 +180,12 @@ function beforeDeleteHook(pubsub, app)
                 }
             });
 
-            return pubsub.emit(data, topicName);
+            return self.pubsub.emit(data,
+            {
+                topicName: topicName,
+                env: self.env,
+                groupName: self.serviceName
+            });
         }).catch(console.error).then(next);
     }
 }
@@ -252,7 +207,7 @@ function getType(val)
 
 /* Pubsub starters */
 
-function clientSide(pubsub, options)
+function clientSide(self, options)
 {
     if (!options.projectId)
     {
@@ -269,18 +224,25 @@ function clientSide(pubsub, options)
         return Promise.reject(new Error('eventFn is required for pubsub client'));
     }
 
-    pubsub.eventFn = options.eventFn;
-
     return options.modelsToSubscribe.reduce((prev, modelName) =>
     {
         return prev.then(() =>
         {
-            return createSubscription(pubsub, modelName);
+            return self.pubsub.subscribe(
+            {
+                topicName: modelName,
+                env: self.env,
+                groupName: self.serviceName,
+                callback: function (d)
+                {
+                    options.eventFn(d.modelName, d.methodName, d.modelId, d.data);
+                }
+            });
         });
     }, Promise.resolve());
 }
 
-function serverSide(pubsub, app, options)
+function serverSide(self, app, options)
 {
     if (!app)
     {
@@ -302,19 +264,7 @@ function serverSide(pubsub, app, options)
         const Model = app.models[m];
         if (!m || !Model) return;
 
-        Model.observe('after save', afterSaveHook(pubsub, app));
-        Model.observe('before delete', beforeDeleteHook(pubsub, app));
+        Model.observe('after save', afterSaveHook(self, app));
+        Model.observe('before delete', beforeDeleteHook(self, app));
     });
-
-    pubsub.emit = function (data, topicName)
-    {
-        if (!topicName) throw new Error('Publishing message requires topic name');
-        return findOrCreateTopic(pubsub, topicName).then(topic =>
-        {
-            return topic.publisher().publish(Buffer.from(JSON.stringify(data)), function (err, res)
-            {
-                if (err) console.error(err);
-            });
-        });
-    }
 }

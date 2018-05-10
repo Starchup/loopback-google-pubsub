@@ -19,7 +19,7 @@ describe('Test customer hook', function ()
                 customerId = customer.id;
                 done();
             }).catch(done);
-        }, 500);
+        }, 1000);
     });
 
     it('should have created an order', function (done)
@@ -34,6 +34,6 @@ describe('Test customer hook', function ()
                 expect(count).to.equal(1);
                 done();
             }).catch(done);
-        }, 500);
+        }, 1000);
     });
 });
