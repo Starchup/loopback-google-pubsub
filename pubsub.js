@@ -277,6 +277,8 @@ function serverSide(self, app, options)
         {
             if (ctx.data) ctx.hookState.updateData = JSON.parse(JSON.stringify(ctx.data));
             else if (ctx.instance) ctx.hookState.updateData = JSON.parse(JSON.stringify(ctx.instance));
+
+            next();
         });
 
         Model.observe('after save', afterSaveHook(self, app));
