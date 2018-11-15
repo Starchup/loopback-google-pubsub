@@ -85,6 +85,17 @@ function shouldPublish(self, modelName, methodName, instance, ctx)
     });
 }
 
+function beforeSaveHook(self, app)
+{
+    return function (ctx, next)
+    {
+        if (ctx.data) ctx.hookState.updateData = JSON.parse(JSON.stringify(ctx.data));
+        else if (ctx.instance) ctx.hookState.updateData = JSON.parse(JSON.stringify(ctx.instance));
+
+        next();
+    }
+}
+
 function afterSaveHook(self, app)
 {
     return function (ctx, next)
@@ -96,9 +107,9 @@ function afterSaveHook(self, app)
         const topicName = modelName;
         const updateData = ctx.hookState.updateData;
 
-        var context = app.loopback.getCurrentContext();
-        var accessToken = context && context.get('accessToken');
-        var userId = null;
+        const context = app.loopback.getCurrentContext();
+        const accessToken = context && context.get('accessToken');
+        let userId = null;
         if (accessToken) userId = accessToken.userId;
 
         if (ctx.instance && ctx.instance.id && shouldPublish(self, modelName, methodName, ctx.instance, ctx))
@@ -273,14 +284,7 @@ function serverSide(self, app, options)
         const Model = app.models[m];
         if (!m || !Model) return;
 
-        Model.observe('before save', function (ctx, next)
-        {
-            if (ctx.data) ctx.hookState.updateData = JSON.parse(JSON.stringify(ctx.data));
-            else if (ctx.instance) ctx.hookState.updateData = JSON.parse(JSON.stringify(ctx.instance));
-
-            next();
-        });
-
+        Model.observe('before save', beforeSaveHook(self, app));
         Model.observe('after save', afterSaveHook(self, app));
         Model.observe('before delete', beforeDeleteHook(self, app));
     });
