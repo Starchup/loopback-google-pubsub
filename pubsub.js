@@ -96,6 +96,11 @@ function afterSaveHook(self, app)
         const topicName = modelName;
         const updateData = ctx.hookState.updateData;
 
+        var context = app.loopback.getCurrentContext();
+        var accessToken = context && context.get('accessToken');
+        var userId = null;
+        if (accessToken) userId = accessToken.userId;
+
         if (ctx.instance && ctx.instance.id && shouldPublish(self, modelName, methodName, ctx.instance, ctx))
         {
             const instance = JSON.parse(JSON.stringify(ctx.instance));
@@ -105,7 +110,8 @@ function afterSaveHook(self, app)
                 methodName: methodName,
                 modelId: instance.id,
                 data: instance,
-                updateData: updateData
+                updateData: updateData,
+                userId: userId
             }],
             {
                 topicName: topicName,
@@ -135,7 +141,8 @@ function afterSaveHook(self, app)
                     modelName: modelName,
                     methodName: methodName,
                     modelId: m.id,
-                    data: m
+                    data: m,
+                    userId: userId
                 }
             });
 
@@ -237,7 +244,7 @@ function clientSide(self, options)
                 groupName: self.serviceName,
                 callback: function (d)
                 {
-                    options.eventFn(d.modelName, d.methodName, d.modelId, d.data, d.updateData);
+                    options.eventFn(d.modelName, d.methodName, d.modelId, d.data, d.updateData, d.userId);
                 }
             });
         });
