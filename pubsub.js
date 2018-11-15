@@ -94,6 +94,7 @@ function afterSaveHook(self, app)
 
         const methodName = ctx.isNewInstance ? 'create' : 'update';
         const topicName = modelName;
+        const updateData = ctx.hookState.updateData;
 
         if (ctx.instance && ctx.instance.id && shouldPublish(self, modelName, methodName, ctx.instance, ctx))
         {
@@ -103,7 +104,8 @@ function afterSaveHook(self, app)
                 modelName: modelName,
                 methodName: methodName,
                 modelId: instance.id,
-                data: instance
+                data: instance,
+                updateData: updateData
             }],
             {
                 topicName: topicName,
@@ -263,6 +265,12 @@ function serverSide(self, app, options)
     {
         const Model = app.models[m];
         if (!m || !Model) return;
+
+        Model.observe('before save', function (ctx, next)
+        {
+            if (ctx.data) ctx.hookState.updateData = JSON.parse(JSON.stringify(ctx.data));
+            else if (ctx.instance) ctx.hookState.updateData = JSON.parse(JSON.stringify(ctx.instance));
+        });
 
         Model.observe('after save', afterSaveHook(self, app));
         Model.observe('before delete', beforeDeleteHook(self, app));
