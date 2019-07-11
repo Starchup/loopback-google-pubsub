@@ -180,6 +180,11 @@ function beforeDeleteHook(self, app)
         const methodName = 'delete';
         const topicName = modelName;
 
+        const context = app.loopback.getCurrentContext();
+        const accessToken = context && context.get('accessToken');
+        let userId = null;
+        if (accessToken) userId = accessToken.userId;
+
         Model.find(
         {
             where: ctx.where
@@ -196,7 +201,8 @@ function beforeDeleteHook(self, app)
                     modelName: modelName,
                     methodName: methodName,
                     modelId: m.id,
-                    data: m
+                    data: m,
+                    userId: userId
                 }
             });
 
