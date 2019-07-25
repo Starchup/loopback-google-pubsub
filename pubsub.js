@@ -164,7 +164,13 @@ function afterSaveHook(self, app)
                 groupName: self.serviceName
             });
 
-        }).catch(console.error).then(() => next());
+        }).then(function (res)
+        {
+            next();
+        }).catch(function (err)
+        {
+            next(err);
+        });
     }
 }
 
@@ -212,7 +218,13 @@ function beforeDeleteHook(self, app)
                 env: self.env,
                 groupName: self.serviceName
             });
-        }).catch(console.error).then(() => next());
+        }).then(function (res)
+        {
+            next();
+        }).catch(function (err)
+        {
+            next(err);
+        });
     }
 }
 
