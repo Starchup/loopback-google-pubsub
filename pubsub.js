@@ -106,6 +106,7 @@ function afterSaveHook(self, app)
         const methodName = ctx.isNewInstance ? 'create' : 'update';
         const topicName = modelName;
         const updateData = ctx.hookState.updateData;
+        const orderBeforeUpdate = ctx.hookState.orderBeforeUpdate;
 
         const context = app.loopback.getCurrentContext();
         const accessToken = context && context.get('accessToken');
@@ -122,7 +123,8 @@ function afterSaveHook(self, app)
                 modelId: instance.id,
                 data: instance,
                 updateData: updateData,
-                userId: userId
+                userId: userId,
+                orderBeforeUpdate: orderBeforeUpdate
             }],
             {
                 topicName: topicName,
