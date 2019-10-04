@@ -275,7 +275,7 @@ function clientSide(self, options)
                 groupName: self.serviceName,
                 callback: function (d)
                 {
-                    options.eventFn(d.modelName, d.methodName, d.modelId, d.data, d.updateData, d.userId);
+                    options.eventFn(d.modelName, d.methodName, d.modelId, d.data, d.updateData, d.userId, d.orderBeforeUpdate);
                 }
             });
         });
