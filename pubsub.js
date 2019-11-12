@@ -275,7 +275,16 @@ function clientSide(self, options)
                 groupName: self.serviceName,
                 callback: function (d)
                 {
-                    options.eventFn(d.modelName, d.methodName, d.modelId, d.data, d.updateData, d.userId, d.orderBeforeUpdate);
+                    if (d) options.eventFn(
+                        d.modelName,
+                        d.methodName,
+                        d.modelId,
+                        d.data,
+                        d.updateData,
+                        d.userId,
+                        d.orderBeforeUpdate
+                    );
+                    else console.error('No data passed to callback for ' + modelName);
                 }
             });
         });
