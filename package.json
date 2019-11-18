@@ -1,6 +1,6 @@
 {
     "name": "loopback-google-pubsub",
-    "version": "1.1.1",
+    "version": "2.0.0",
     "description": "Pubsub system for Loopback using Google Pubsub",
     "main": "pubsub.js",
     "scripts":
@@ -17,6 +17,6 @@
     "homepage": "https://github.com/Starchup/loopback-google-pubsub#readme",
     "dependencies":
     {
-        "google-pubsub-wrapper": "1.2.1"
+        "google-pubsub-wrapper": "2.0.0"
     }
 }
