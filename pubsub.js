@@ -169,10 +169,7 @@ function afterSaveHook(self, app)
         }).then(function (res)
         {
             next();
-        }).catch(function (err)
-        {
-            next(err);
-        });
+        }).catch(next);
     }
 }
 
@@ -223,10 +220,7 @@ function beforeDeleteHook(self, app)
         }).then(function (res)
         {
             next();
-        }).catch(function (err)
-        {
-            next(err);
-        });
+        }).catch(next);
     }
 }
 
@@ -283,8 +277,7 @@ function clientSide(self, options)
                         d.updateData,
                         d.userId,
                         d.orderBeforeUpdate
-                    );
-                    else console.error('No data passed to callback for ' + modelName);
+                    )
                 }
             });
         });
