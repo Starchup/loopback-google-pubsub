@@ -159,12 +159,15 @@ function afterSaveHook(self, app)
                 }
             });
 
-            if (data && data.length > 0) return self.pubsub.emit(data,
+            if (data && data.length > 0) return Promise.all(data.map(function (d)
             {
-                topicName: topicName,
-                env: self.env,
-                groupName: self.serviceName
-            });
+                return self.pubsub.emit(d,
+                {
+                    topicName: topicName,
+                    env: self.env,
+                    groupName: self.serviceName
+                })
+            }));
 
         }).then(function (res)
         {
