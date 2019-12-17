@@ -155,7 +155,9 @@ function afterSaveHook(self, app)
                     methodName: methodName,
                     modelId: m.id,
                     data: m,
-                    userId: userId
+                    userId: userId,
+                    updateData: updateData,
+                    orderBeforeUpdate: orderBeforeUpdate
                 }
             });
 
