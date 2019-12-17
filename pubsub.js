@@ -116,7 +116,7 @@ function afterSaveHook(self, app)
         if (ctx.instance && ctx.instance.id && shouldPublish(self, modelName, methodName, ctx.instance, ctx))
         {
             const instance = JSON.parse(JSON.stringify(ctx.instance));
-            return self.pubsub.emit([
+            return self.pubsub.emit(
             {
                 modelName: modelName,
                 methodName: methodName,
@@ -125,7 +125,7 @@ function afterSaveHook(self, app)
                 updateData: updateData,
                 userId: userId,
                 orderBeforeUpdate: orderBeforeUpdate
-            }],
+            },
             {
                 topicName: topicName,
                 env: self.env,
@@ -214,12 +214,15 @@ function beforeDeleteHook(self, app)
                 }
             });
 
-            return self.pubsub.emit(data,
+            if (data && data.length > 0) return Promise.all(data.map(function (d)
             {
-                topicName: topicName,
-                env: self.env,
-                groupName: self.serviceName
-            });
+                return self.pubsub.emit(d,
+                {
+                    topicName: topicName,
+                    env: self.env,
+                    groupName: self.serviceName
+                })
+            }));
         }).then(function (res)
         {
             next();
