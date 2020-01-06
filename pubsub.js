@@ -106,7 +106,7 @@ function afterSaveHook(self, app)
         const methodName = ctx.isNewInstance ? 'create' : 'update';
         const topicName = modelName;
         const updateData = ctx.hookState.updateData;
-        const orderBeforeUpdate = ctx.hookState.orderBeforeUpdate;
+        const dataBeforeUpdate = ctx.hookState.dataBeforeUpdate;
 
         const context = app.loopback.getCurrentContext();
         const accessToken = context && context.get('accessToken');
@@ -124,7 +124,7 @@ function afterSaveHook(self, app)
                 data: instance,
                 updateData: updateData,
                 userId: userId,
-                orderBeforeUpdate: orderBeforeUpdate
+                dataBeforeUpdate: dataBeforeUpdate
             },
             {
                 topicName: topicName,
@@ -157,7 +157,7 @@ function afterSaveHook(self, app)
                     data: m,
                     userId: userId,
                     updateData: updateData,
-                    orderBeforeUpdate: orderBeforeUpdate
+                    dataBeforeUpdate: dataBeforeUpdate
                 }
             });
 
@@ -284,7 +284,7 @@ function clientSide(self, options)
                         d.data,
                         d.updateData,
                         d.userId,
-                        d.orderBeforeUpdate
+                        d.dataBeforeUpdate
                     )
                 }
             });
