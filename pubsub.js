@@ -279,7 +279,7 @@ function clientSide(self, options)
                 groupName: self.serviceName,
                 callback: function (d)
                 {
-                    if (d) options.eventFn(
+                    if (d) return options.eventFn(
                         d.modelName,
                         d.methodName,
                         d.modelId,
