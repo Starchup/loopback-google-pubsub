@@ -106,7 +106,7 @@ function afterSaveHook(self, app)
         const methodName = ctx.isNewInstance ? 'create' : 'update';
         const topicName = modelName;
         const updateData = ctx.hookState.updateData;
-        const dataBeforeUpdate = ctx.hookState.dataBeforeUpdate;
+        const dataBeforeUpdate = ctx.hookState.dataBeforeUpdate || ctx.hookState.orderBeforeUpdate;
 
         const context = app.loopback.getCurrentContext();
         const accessToken = context && context.get('accessToken');
@@ -124,7 +124,8 @@ function afterSaveHook(self, app)
                 data: instance,
                 updateData: updateData,
                 userId: userId,
-                dataBeforeUpdate: dataBeforeUpdate
+                dataBeforeUpdate: dataBeforeUpdate,
+                orderBeforeUpdate: dataBeforeUpdate
             },
             {
                 topicName: topicName,
@@ -157,7 +158,8 @@ function afterSaveHook(self, app)
                     data: m,
                     userId: userId,
                     updateData: updateData,
-                    dataBeforeUpdate: dataBeforeUpdate
+                    dataBeforeUpdate: dataBeforeUpdate,
+                    orderBeforeUpdate: dataBeforeUpdate
                 }
             });
 
@@ -277,7 +279,7 @@ function clientSide(self, options)
                 groupName: self.serviceName,
                 callback: function (d)
                 {
-                    if (d) options.eventFn(
+                    if (d) return options.eventFn(
                         d.modelName,
                         d.methodName,
                         d.modelId,
