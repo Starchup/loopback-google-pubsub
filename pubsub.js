@@ -1,6 +1,8 @@
 "use strict";
 
 const PubSub = require('google-pubsub-wrapper');
+const label = `[PubSubLib]`;
+const pubsubUserIdVar = 'pubsubUserId';
 
 const pubsubList = {};
 
@@ -57,7 +59,7 @@ function Pubsub(app, options)
 
         if (!self.type) self.type = options.type;
 
-        if (options.type === 'client') clientSide(self, options).then(function ()
+        if (options.type === 'client') clientSide(self, options, app).then(function ()
         {
             if (options.done) options.done();
         });
@@ -248,11 +250,18 @@ function getType(val)
 }
 
 
+function error(msg)
+{
+    console.error(msg);
+    return Promise.reject(new Error(msg));
+}
 
 /* Pubsub starters */
 
-function clientSide(self, options)
+function clientSide(self, options, app)
 {
+    const logLabel = `${label}[clientSide]`;
+
     if (!options.projectId)
     {
         return Promise.reject(new Error('Google Project Id is required for pubsub client'));
@@ -279,15 +288,46 @@ function clientSide(self, options)
                 groupName: self.serviceName,
                 callback: function (d)
                 {
-                    if (d) return options.eventFn(
-                        d.modelName,
-                        d.methodName,
-                        d.modelId,
-                        d.data,
-                        d.updateData,
-                        d.userId,
-                        d.dataBeforeUpdate
-                    )
+                    if (d) {
+                        return Promise.resolve()
+                        .then(function setPubsubUserId() {
+                            const context = app.loopback.getCurrentContext();
+                            if (!context) {
+                                return error(`${logLabel} Could not instantiate loopback context`);
+                            }
+        
+                            const currentPubsubUserId = context.get(pubsubUserIdVar);
+                            if (currentPubsubUserId) {
+                                return error(`${logLabel} Unexpected existent pubsubUserId='${currentPubsubUserId}'`);
+                            }
+                            
+                            const pubsubUserId = d.userId;
+                            if (!pubsubUserId) {
+                                return error(`${logLabel} Could not find pubsubUserId`);
+                            }
+        
+                            context.set(pubsubUserIdVar, pubsubUserId);
+                        })
+                        .then(function triggerEvent() {
+                            return options.eventFn(
+                                d.modelName,
+                                d.methodName,
+                                d.modelId,
+                                d.data,
+                                d.updateData,
+                                d.userId,
+                                d.dataBeforeUpdate
+                            )
+                        })
+                        .then(function unsetPubsubUserId() {
+                            const context = app.loopback.getCurrentContext();
+                            if (!context) {
+                                return error(`${logLabel} unsetPubsubUserId: Could not instantiate loopback context`);
+                            }
+
+                            context.set(pubsubUserIdVar, null);
+                        })
+                    }
                 }
             });
         });
