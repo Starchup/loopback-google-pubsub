@@ -268,7 +268,7 @@ function getContext(app)
 {
     const fcnlabel = `${label}[context]`;
 
-    const loopbackCtx = app.loopback.getCurrentContext();
+    let loopbackCtx = app.loopback.getCurrentContext();
     if (!loopbackCtx) {
         app.loopback.createContext(label);
         loopbackCtx = app.loopback.getCurrentContext();
