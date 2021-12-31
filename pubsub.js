@@ -320,8 +320,10 @@ function clientSide(self, options, app)
                 groupName: self.serviceName,
                 callback: function (d)
                 {
+                    console.log(`${logLabel} callback called with:`, d);
+
                     if (d) {
-                        const callbackLabel = `${logLabel}[${d.modelName}]`;
+                        const callbackLabel = `${logLabel}[${d.modelName}/${d.modelId}]`;
 
                         return Promise.resolve()
                         .then(function setPubsubUserId() {
@@ -362,7 +364,12 @@ function clientSide(self, options, app)
                             context.set(pubsubUserIdVar, null);
 
                             return eventResult;
+                        }).catch(e => {
+                            console.error(`${callbackLabel} ERROR: `, e);
+                            throw e;
                         })
+                    } else {
+                        console.log(`${logLabel} Warning: callback called with no data`);
                     }
                 }
             });
