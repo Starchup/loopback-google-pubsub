@@ -258,6 +258,31 @@ function error(msg)
 
 /* Pubsub starters */
 
+/**
+ * Globally accesible, thread-scoped data
+ * 
+ * https://loopback.io/doc/en/lb2/Using-current-context.html
+ * https://www.npmjs.com/package/continuation-local-storage
+ */
+function getContext(app)
+{
+    const fcnlabel = `${label}[context]`;
+
+    const loopbackCtx = app.loopback.getCurrentContext();
+    if (!loopbackCtx) {
+        app.loopback.createContext(label);
+        loopbackCtx = app.loopback.getCurrentContext();
+
+        if (loopbackCtx) {
+            console.log(`${fcnlabel} Warning: Loopback Current Context not found, created a new one :)`);
+        } else {
+            console.log(`${fcnlabel} Warning: Loopback Current Context not found, unable to create a new one :(`);
+        }
+    }
+
+    return loopbackCtx;
+}
+
 function clientSide(self, options, app)
 {
     const logLabel = `${label}[clientSide]`;
@@ -291,7 +316,7 @@ function clientSide(self, options, app)
                     if (d) {
                         return Promise.resolve()
                         .then(function setPubsubUserId() {
-                            const context = app.loopback.getCurrentContext();
+                            const context = getContext(app);
                             if (!context) {
                                 return error(`${logLabel} Could not instantiate loopback context`);
                             }
@@ -320,7 +345,7 @@ function clientSide(self, options, app)
                             )
                         })
                         .then(function unsetPubsubUserId() {
-                            const context = app.loopback.getCurrentContext();
+                            const context = getContext(app);
                             if (!context) {
                                 return error(`${logLabel} unsetPubsubUserId: Could not instantiate loopback context`);
                             }
