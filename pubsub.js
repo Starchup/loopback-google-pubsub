@@ -1,8 +1,6 @@
 "use strict";
 
 const PubSub = require('google-pubsub-wrapper');
-const label = `[PubSubLib]`;
-const pubsubUserIdVar = 'pubsubUserId';
 
 const pubsubList = {};
 
@@ -59,7 +57,7 @@ function Pubsub(app, options)
 
         if (!self.type) self.type = options.type;
 
-        if (options.type === 'client') clientSide(self, options, app).then(function ()
+        if (options.type === 'client') clientSide(self, options).then(function ()
         {
             if (options.done) options.done();
         });
@@ -250,48 +248,11 @@ function getType(val)
 }
 
 
-function error(msg)
-{
-    console.error(msg);
-    return Promise.reject(new Error(msg));
-}
 
 /* Pubsub starters */
 
-/**
- * Globally accesible, thread-scoped data
- * 
- * https://loopback.io/doc/en/lb2/Using-current-context.html
- * https://www.npmjs.com/package/continuation-local-storage
- */
-function getContext(app)
+function clientSide(self, options)
 {
-    const fcnlabel = `${label}[context]`;
-
-    let loopbackCtx = app.loopback.getCurrentContext();
-    if (!loopbackCtx) {
-        app.loopback.createContext(label);
-        loopbackCtx = app.loopback.getCurrentContext();
-
-        if (loopbackCtx) {
-            console.log(`${fcnlabel} Warning: Loopback Current Context not found, created a new one :)`);
-        } else {
-            console.log(`${fcnlabel} Warning: Loopback Current Context not found, unable to create a new one :(`);
-        }
-    }
-
-    return loopbackCtx;
-}
-
-function clientSide(self, options, app)
-{
-    const logLabel = `${label}[clientSide]`;
-
-    if (!app)
-    {
-        return error('app is required for pubsub client');
-    }
-
     if (!options.projectId)
     {
         return Promise.reject(new Error('Google Project Id is required for pubsub client'));
@@ -307,8 +268,6 @@ function clientSide(self, options, app)
         return Promise.reject(new Error('eventFn is required for pubsub client'));
     }
 
-    console.log(`${logLabel} Listening to ${options.modelsToSubscribe.length} models: ${options.modelsToSubscribe.join(", ")}`);
-
     return options.modelsToSubscribe.reduce((prev, modelName) =>
     {
         return prev.then(() =>
@@ -320,57 +279,15 @@ function clientSide(self, options, app)
                 groupName: self.serviceName,
                 callback: function (d)
                 {
-                    console.log(`${logLabel} callback called with:`, d);
-
-                    if (d) {
-                        const callbackLabel = `${logLabel}[${d.modelName}/${d.modelId}]`;
-
-                        return Promise.resolve()
-                        .then(function setPubsubUserId() {
-                            const context = getContext(app);
-                            if (!context) {
-                                return error(`${callbackLabel} Could not instantiate loopback context`);
-                            }
-        
-                            const currentPubsubUserId = context.get(pubsubUserIdVar);
-                            if (currentPubsubUserId) {
-                                return error(`${callbackLabel} Unexpected existent pubsubUserId='${currentPubsubUserId}'`);
-                            }
-                            
-                            const pubsubUserId = d.userId;
-                            if (!pubsubUserId) {
-                                return error(`${callbackLabel} Could not find pubsubUserId`);
-                            }
-        
-                            context.set(pubsubUserIdVar, pubsubUserId);
-                        })
-                        .then(function triggerEvent() {
-                            return options.eventFn(
-                                d.modelName,
-                                d.methodName,
-                                d.modelId,
-                                d.data,
-                                d.updateData,
-                                d.userId,
-                                d.dataBeforeUpdate
-                            )
-                        })
-                        .then(function unsetPubsubUserId(eventResult) {
-                            const context = getContext(app);
-                            if (!context) {
-                                return error(`${callbackLabel} unsetPubsubUserId: Could not instantiate loopback context`);
-                            }
-
-                            context.set(pubsubUserIdVar, null);
-
-                            return eventResult;
-                        }).catch(e => {
-                            console.error(`${callbackLabel} ERROR: `, e);
-                            throw e;
-                        })
-                    } else {
-                        console.log(`${logLabel} Warning: callback called with no data`);
-                    }
+                    if (d) return options.eventFn(
+                        d.modelName,
+                        d.methodName,
+                        d.modelId,
+                        d.data,
+                        d.updateData,
+                        d.userId,
+                        d.dataBeforeUpdate
+                    )
                 }
             });
         });
@@ -379,8 +296,6 @@ function clientSide(self, options, app)
 
 function serverSide(self, app, options)
 {
-    const logLabel = `${label}[serverSide]`;
-
     if (!app)
     {
         throw new Error('app is required for pubsub server');
@@ -395,8 +310,6 @@ function serverSide(self, app, options)
     {
         throw new Error('modelsToBroadcast is required for pubsub server');
     }
-
-    console.log(`${logLabel} Broadcasting ${options.modelsToBroadcast.length} models: ${options.modelsToBroadcast.join(", ")}`);
 
     options.modelsToBroadcast.forEach(m =>
     {
