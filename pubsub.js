@@ -113,6 +113,8 @@ function afterSaveHook(self, app)
         let userId = null;
         if (accessToken) userId = accessToken.userId;
 
+        const reqId = context && context.get('reqId');
+
         if (ctx.instance && ctx.instance.id && shouldPublish(self, modelName, methodName, ctx.instance, ctx))
         {
             const instance = JSON.parse(JSON.stringify(ctx.instance));
@@ -125,7 +127,8 @@ function afterSaveHook(self, app)
                 updateData: updateData,
                 userId: userId,
                 dataBeforeUpdate: dataBeforeUpdate,
-                orderBeforeUpdate: dataBeforeUpdate
+                orderBeforeUpdate: dataBeforeUpdate,
+                reqId,
             },
             {
                 topicName: topicName,
@@ -159,7 +162,8 @@ function afterSaveHook(self, app)
                     userId: userId,
                     updateData: updateData,
                     dataBeforeUpdate: dataBeforeUpdate,
-                    orderBeforeUpdate: dataBeforeUpdate
+                    orderBeforeUpdate: dataBeforeUpdate,
+                    reqId,
                 }
             });
 
@@ -197,6 +201,8 @@ function beforeDeleteHook(self, app)
         let userId = null;
         if (accessToken) userId = accessToken.userId;
 
+        const reqId = context && context.get('reqId');
+
         Model.find(
         {
             where: ctx.where
@@ -214,7 +220,8 @@ function beforeDeleteHook(self, app)
                     methodName: methodName,
                     modelId: m.id,
                     data: m,
-                    userId: userId
+                    userId: userId,
+                    reqId,
                 }
             });
 
@@ -279,6 +286,10 @@ function clientSide(self, options)
                 groupName: self.serviceName,
                 callback: function (d)
                 {
+                    //loopback context is not available here
+                    //so no features relying on it (such as context filter) works here
+                    if (d) console.log(`[PubSub] handleRemoteMessage: [${d.reqId}]${d.modelName}/${d.modelId}/${d.methodName}`);
+
                     if (d) return options.eventFn(
                         d.modelName,
                         d.methodName,
