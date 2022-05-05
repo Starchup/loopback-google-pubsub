@@ -118,6 +118,8 @@ function afterSaveHook(self, app)
         if (ctx.instance && ctx.instance.id && shouldPublish(self, modelName, methodName, ctx.instance, ctx))
         {
             const instance = JSON.parse(JSON.stringify(ctx.instance));
+            console.log(`[${reqId}][PubSub] publish: ${modelName}/${instance.id}/${methodName}`);
+
             return self.pubsub.emit(
             {
                 modelName: modelName,
@@ -169,6 +171,7 @@ function afterSaveHook(self, app)
 
             if (data && data.length > 0) return Promise.all(data.map(function (d)
             {
+                if (d) console.log(`[${reqId}][PubSub] publish: ${d.modelName}/${d.modelId}/${d.methodName}`);
                 return self.pubsub.emit(d,
                 {
                     topicName: topicName,
@@ -227,6 +230,7 @@ function beforeDeleteHook(self, app)
 
             if (data && data.length > 0) return Promise.all(data.map(function (d)
             {
+                if (d) console.log(`[${reqId}][PubSub] publish: ${d.modelName}/${d.modelId}/${d.methodName}`);
                 return self.pubsub.emit(d,
                 {
                     topicName: topicName,
@@ -275,6 +279,8 @@ function clientSide(self, options)
         return Promise.reject(new Error('eventFn is required for pubsub client'));
     }
 
+    console.log(`[PubSub][client] Listening to ${options.modelsToSubscribe.length} models: ${options.modelsToSubscribe.join(", ")}`);
+
     return options.modelsToSubscribe.reduce((prev, modelName) =>
     {
         return prev.then(() =>
@@ -288,7 +294,8 @@ function clientSide(self, options)
                 {
                     //loopback context is not available here
                     //so no features relying on it (such as context filter) works here
-                    if (d) console.log(`[PubSub] handleRemoteMessage: [${d.reqId}]${d.modelName}/${d.modelId}/${d.methodName}`);
+                    const tab = '==============';
+                    if (d) console.log(`${tab}[PubSub] handleRemoteMessage: [${d.reqId}]${d.modelName}/${d.modelId}/${d.methodName}`);
 
                     if (d) return options.eventFn(
                         d.modelName,
@@ -321,6 +328,8 @@ function serverSide(self, app, options)
     {
         throw new Error('modelsToBroadcast is required for pubsub server');
     }
+
+    console.log(`[PubSub][server] Broadcasting ${options.modelsToBroadcast.length} models: ${options.modelsToBroadcast.join(", ")}`);
 
     options.modelsToBroadcast.forEach(m =>
     {
