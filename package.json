@@ -1,6 +1,6 @@
 {
     "name": "loopback-google-pubsub",
-    "version": "2.4.6",
+    "version": "2.4.7",
     "description": "Pubsub system for Loopback using Google Pubsub",
     "main": "pubsub.js",
     "scripts":
